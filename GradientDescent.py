@@ -25,13 +25,6 @@ class GradientDescent(object):
         self.thetas = None
         self.costs = None
 
-    @staticmethod
-    def __install__(package):
-        """dynamically install missing package"""
-        pip.main(['install', package])
-
-    def fit(self, model, X, y):
-
         try:
             import statsmodels.api as sm
         except ImportError:
@@ -49,6 +42,13 @@ class GradientDescent(object):
         except ImportError:
             self.__install__('sklearn')
             from sklearn import linear_model
+
+    @staticmethod
+    def __install__(package):
+        """dynamically install missing package"""
+        pip.main(['install', package])
+
+    def fit(self, model, X, y):
 
         self.X = np.array(X)
         self.y = np.array(y).reshape(len(y), 1)
