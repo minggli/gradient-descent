@@ -148,4 +148,4 @@ class GradientDescent(object):
                 master_params = np.append(master_params, np.array(_params), axis=0)
 
             self.thetas = master_params[1:]
-            self.costs = master_costs
+            self.costs = master_costs[0]
