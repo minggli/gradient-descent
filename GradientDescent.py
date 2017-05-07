@@ -63,12 +63,12 @@ class GradientDescent(object):
         m = len(X)
 
         if self._linear:
-            h = np.dot(X, params.T)     # GLM hypothesis in linear algebra representation
+            h = np.dot(X, params.T)
 
         if self._sigmoid:
-            h = 1 / (1 + np.exp(-np.dot(X, params.T)))     # logistic (sigmoid) model hypothesis
+            h = 1 / (1 + np.exp(-np.dot(X, params.T)))
 
-        J = np.dot((h - y).T, X) / m        # partial_derivative terms for either linear or logistic regression
+        J = np.dot((h - y).T, X) / m
 
         return J  # J is a n-dimensioned vector
 
@@ -95,7 +95,7 @@ class GradientDescent(object):
 
         alpha = self._alpha
 
-        count = 0  # initiating a count number so once reaching max iterations will terminate
+        count = 0
 
         cost = self.__cost_function__(params, X, y)  # initial J(theta)
         prev_cost = cost + 10
@@ -105,11 +105,12 @@ class GradientDescent(object):
         if self._display:
             print('beginning gradient decent algorithm...')
 
-        while (np.abs(prev_cost - cost) > self._conv_thres) and (count <= self._max_epochs):
+        while (np.abs(prev_cost - cost) > self._conv_thres) and\
+                (count <= self._max_epochs):
             prev_cost = cost
-            params -= alpha * self.__partial_derivative_cost__(params, X, y)  # gradient descend
+            params -= alpha * self.__partial_derivative_cost__(params, X, y)
             # thetas.append(params)  # restoring historic parameters
-            cost = self.__cost_function__(params, X, y)  # cost at each iteration
+            cost = self.__cost_function__(params, X, y)
             costs.append(cost)
             count += 1
             if self._display:
@@ -138,8 +139,8 @@ class GradientDescent(object):
             master_costs = list()
 
             for k, _class in enumerate(unique_classes):
-
-                _y = np.array(y == _class).astype(int)  # one versus rest method handling multi-nominal classification
+                # one versus rest method handling multi-nominal classification
+                _y = np.array(y == _class).astype(int)
                 _params = np.matrix(params[k])
 
                 new_thetas, costs = self.__processing__(_params, X, _y)
