@@ -1,12 +1,11 @@
 import numpy as np
-
 import matplotlib.pyplot as plt
-from GradientDescent import GradientDescent
+
 from sklearn.datasets import load_iris
 from sklearn import (metrics, model_selection, pipeline, preprocessing,
                      linear_model)
 
-np.random.seed(0)
+from GradientDescent import GradientDescent
 
 
 def iris_visualisation(iris):
@@ -52,7 +51,7 @@ def scaler_wrapper(estimator):
     return wrapper_estimator
 
 
-def initiate_weights(estimator, mean=0, stddev=1):
+def initiate_random_weights(estimator, mean=0, stddev=1):
     norm_dist = np.random.normal(loc=mean, scale=stddev, size=1000)
     boolean_index = abs(norm_dist - mean) < stddev * 2
     truncated_norm_dist = norm_dist[boolean_index]
@@ -70,30 +69,28 @@ label = data['target']
 
 # logistic regression
 lr = linear_model.LogisticRegression(fit_intercept=False,
-                                     multi_class='multinomial',
+                                     multi_class='ovr',
                                      solver='newton-cg')
+
 
 # add constant to feature set
 constantfeature = np.hstack((np.ones([feature.shape[0], 1]), feature))
 # Gradient Descent to fit model
 lr.fit(constantfeature, label)
 # initiate weights
-lr.coef_ = initiate_weights(lr)
-print(lr.coef_)
+lr.coef_ = initiate_random_weights(lr)
 
 optimiser = GradientDescent(alpha=1e-1, max_epochs=1e5, conv_thres=1e-6,
-                            display=False)
-optimiser.fit(lr, constantfeature, label).optimise()
-new_parameters = optimiser.thetas
+                            display=True)
+new_parameters, costs = optimiser.fit(lr, constantfeature, label).optimise()
+# assign new_parameters to lr
 lr.coef_ = new_parameters
-print(lr.coef_)
 y_pred = lr.predict(constantfeature)
 f1_macro = metrics.f1_score(label, y_pred, average='macro')
 accuracy = metrics.accuracy_score(label, y_pred)
 print('Logistic Regression performance using Gradient Descent:\n'
       'F1 (macro): {:.4f}\nAccuracy: {:.4f}'.format(
         f1_macro.mean(), accuracy.mean()))
-
 
 # cross-validation with KFold
 kfold = model_selection.StratifiedKFold(n_splits=4, shuffle=True)
@@ -108,6 +105,6 @@ accuracy = model_selection.cross_val_score(estimator=lr,
                                            scoring='accuracy',
                                            cv=kfold)
 
-print('Logistic Regression CV performance:\n'
+print('Logistic Regression performance using CV with default solver:\n'
       'F1 (macro): {:.4f}\nAccuracy: {:.4f}'.format(
         f1_macro.mean(), accuracy.mean()))
