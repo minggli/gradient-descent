@@ -1,3 +1,12 @@
+"""
+GradientDescent
+
+This standard gradient descent implementation is to understand underlying
+mathematics of Generalized Linear Model and Logistic Regression.
+
+multi-class Logistic Regression is supported through OvR (One versus Rest)
+"""
+
 import numpy as np
 from sklearn import linear_model
 import statsmodels.api as sm
@@ -5,147 +14,148 @@ import statsmodels.api as sm
 __author__ = 'Ming Li'
 
 
-class GradientDescent(object):
+class GradientDescent:
 
-    """
-    This is a standard Gradient Descent algorithm to optimise parameters for General Linear Models and Logistic Regression.
-    Multi-class Logistic Regression is supported
-    """
+    def __init__(self,
+                 alpha=1e-2,
+                 max_epochs=1e5,
+                 conv_thres=1e-6,
+                 display=False):
 
-    def __init__(self, alpha=.1, max_epochs=5000, conv_thres=.0001, display=False):
-
-        self._alpha = alpha    # learning rate
-        self._max_epochs = max_epochs  # max number of iterations
-        self._conv_thres = conv_thres    # convergence threshold
+        self._alpha = alpha
+        self._max_epochs = max_epochs
+        self._conv_thres = conv_thres
         self._display = display
-        self._multi_class = False
+        self._multiclass = False
         self._sigmoid = None
         self._linear = None
-        self.params = None
-        self.X = None
-        self.y = None
-        self.thetas = None
-        self.costs = None
 
     def fit(self, model, X, y):
 
         self.X = np.array(X)
-        self.y = np.array(y).reshape(len(y), 1)
+        self.m, self.n = self.X.shape
+        self.y = np.array(y).reshape(self.m, -1)
+        self.n_class = np.unique(self.y).shape[0]
 
-        if isinstance(model, sm.OLS) or isinstance(model, linear_model.LinearRegression):
+        if isinstance(model, sm.OLS) or \
+           isinstance(model, linear_model.LinearRegression):
             self._linear = True
             if hasattr(model, 'coef_'):
-                self.params = np.array(np.matrix(model.coef_))
+                self.params = model.coef_.reshape(-1, self.n)
             if hasattr(model, 'params'):
-                self.params = np.array(np.matrix(model.params))
+                self.params = np.array(model.params).reshape(-1, self.n)
 
-        if isinstance(model, linear_model.LogisticRegression):
+        elif isinstance(model, linear_model.LogisticRegression):
             self._sigmoid = True
             if hasattr(model, 'coef_'):
-                self.params = np.array(np.matrix(model.coef_))
+                self.params = model.coef_.reshape(-1, self.n)
 
-            unique_classes = np.unique(self.y)
-            n = len(unique_classes)
-            if n < 2:
-                raise ValueError("Optimiser needs samples of at least 2 classes"
-                                 " in the data, but the data contains only one"
-                                 " class: {0}".format(unique_classes[0]))
-            if n == 2:
-                self._multi_class = False
-            else:
-                self._multi_class = True
+            if self.n_class < 2:
+                raise Exception("Optimiser needs at least 2 classes"
+                                " but only finds only one class.")
 
+            self._multiclass = False if self.n_class == 2 else True
+        else:
+            raise Exception('model framework not supported: need either'
+                            ' scikit-learn or statsmodels.')
         return self
 
-    def __partial_derivative_cost__(self, params, X, y):
-
-        J = 0
-        m = len(X)
-
+    def _update_hypothesis(self, params):
+        """recalculate h(x) during optimisation"""
         if self._linear:
-            h = np.dot(X, params.T)     # GLM hypothesis in linear algebra representation
+            # GLM hypothesis in linear algebra representation, X includes
+            # constant or intercept
+            self.h = np.dot(self.X, params.T)
 
         if self._sigmoid:
-            h = 1 / (1 + np.exp(-np.dot(X, params.T)))     # logistic (sigmoid) model hypothesis
+            # logistic (sigmoid) hypothesis in linear algebra representation
+            self.h = 1 / (1 + np.exp(-np.dot(self.X, params.T)))
 
-        J = np.dot((h - y).T, X) / m        # partial_derivative terms for either linear or logistic regression
+    def _partial_derivative(self, params, y):
+        """partial derivative terms for either linear or logistic regression
+        albeit comestically the same, hypothesis would be different for each.
 
-        return J  # J is a n-dimensioned vector
+        d is n-dimensioned vector.
+        """
+        self._update_hypothesis(params)
+        d = np.dot((self.h - y).T, self.X) / self.m
+        return d
 
-    def __cost_function__(self, params, X, y):
-
-        J = 0
-        m = len(X)
+    def _cost_function(self, params, y):
+        """cost function or objective function to minimise"""
+        self._update_hypothesis(params)
 
         if self._linear:
-            h = np.dot(X, params.T)
-            # GLM hypothesis in linear algebra representation
-            J = (h - y) ** 2
-            J /= (2 * m)
+            # GLM hypothesis in linear algebra representation: mean squared
+            # error over 2
+            J = np.square(self.h - y) / self.m
+            J /= 2
 
         if self._sigmoid:
-            h = 1 / (1 + np.exp(-np.dot(X, params.T)))
-            # logistic (sigmoid) model hypothesis
-            J = - np.dot(np.log(h).T, y) - np.dot(np.log(1 - h).T, (1 - y))
-            J /= m
+            # logistic (sigmoid) hypothesis in linear algebra representation
+            J = - np.dot(y.T, np.log(self.h)) \
+                - np.dot((1 - y).T, np.log(1 - self.h))
+            J /= self.m
+        return float(J)
 
-        return np.sum(J)
-
-    def __processing__(self, params, X, y):
-
-        alpha = self._alpha
-
-        count = 0  # initiating a count number so once reaching max iterations will terminate
-
-        cost = self.__cost_function__(params, X, y)  # initial J(theta)
+    def _process(self, params, y):
+        """core operation to iteratively calculate partial
+        deratives and update parameters and evaluate cost function"""
+        # initial J of theta
+        cost = self._cost_function(params, y)
         prev_cost = cost + 10
         costs = [cost]
-        # thetas = [params]
 
-        if self._display:
-            print('beginning gradient decent algorithm...')
-
-        while (np.abs(prev_cost - cost) > self._conv_thres) and (count <= self._max_epochs):
+        while (np.abs(prev_cost - cost) > self._conv_thres) and \
+              (self.count <= self._max_epochs):
             prev_cost = cost
-            params -= alpha * self.__partial_derivative_cost__(params, X, y)  # gradient descend
-            # thetas.append(params)  # restoring historic parameters
-            cost = self.__cost_function__(params, X, y)  # cost at each iteration
+
+            params -= self._alpha * self._partial_derivative(params, y)
+
+            cost = self._cost_function(params, y)
             costs.append(cost)
-            count += 1
+
             if self._display:
-                print('iterations have been processed: {0}'.format(count))
+                print('number iterations processed: {0:<10} '
+                      'cost: {1:<10}'.format(self.count, cost))
+            self.count += 1
 
         return params, costs
 
     def optimise(self):
+        """activate optmiser"""
 
-        X = self.X
-        y = self.y
-        params = self.params
+        if not hasattr(self, 'X'):
+            raise Exception('Fit the optimiser with model.')
 
-        if not self._multi_class:
+        self.count = 0
+        print('beginning gradient descend algorithm...')
 
-            new_thetas, costs = self.__processing__(params, X, y)
+        if not self._multiclass:
+
+            new_thetas, costs = self._process(self.params, self.y)
 
             self.thetas = new_thetas
             self.costs = costs
+            return self.thetas, self.costs
 
-        else:
+        elif self._multiclass:
 
-            n_samples, n_features = X.shape
-            unique_classes = np.unique(y)
-            master_params = np.empty(shape=(1, n_features))
+            unique_classes = np.unique(self.y)
+            master_params = list()
             master_costs = list()
 
+            # one versus rest method handling multi-nominal optimisation
             for k, _class in enumerate(unique_classes):
 
-                _y = np.array(y == _class).astype(int)  # one versus rest method handling multi-nominal classification
-                _params = np.matrix(params[k])
+                ovr_y = np.array(self.y == _class).astype(int)
+                ovr_params = self.params[k].reshape(1, self.n)
 
-                new_thetas, costs = self.__processing__(_params, X, _y)
+                new_thetas, costs = self._process(ovr_params, ovr_y)
 
                 master_costs.append(costs)
-                master_params = np.append(master_params, np.array(_params), axis=0)
+                master_params.append(new_thetas)
 
-            self.thetas = master_params[1:]
-            self.costs = master_costs[0]
+            self.thetas = np.array(master_params).reshape(self.n_class, self.n)
+            self.costs = master_costs
+            return self.thetas, self.costs
