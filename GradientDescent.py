@@ -31,11 +31,11 @@ class GradientDescent(object):
         self.costs = None
 
     @property
-    def params(self):
+    def _params(self):
         return self.params
 
-    @params.setter
-    def params(self, value):
+    @_params.setter
+    def _params(self, value):
         self.params = value
         if self._linear:
             # GLM hypothesis in algebratic representation
@@ -53,14 +53,14 @@ class GradientDescent(object):
                 isinstance(model, linear_model.LinearRegression):
             self._linear = True
             if hasattr(model, 'coef_'):
-                self.params = np.array(np.matrix(model.coef_))
+                self._params = np.array(np.matrix(model.coef_))
             if hasattr(model, 'params'):
-                self.params = np.array(np.matrix(model.params))
+                self._params = np.array(np.matrix(model.params))
 
         if isinstance(model, linear_model.LogisticRegression):
             self._sigmoid = True
             if hasattr(model, 'coef_'):
-                self.params = np.array(np.matrix(model.coef_))
+                self._params = np.array(np.matrix(model.coef_))
 
             unique_classes = np.unique(self.y)
             n = len(unique_classes)
@@ -76,7 +76,7 @@ class GradientDescent(object):
         return self
 
     def __partial_derivative__(self):
-        """partial derivative terms in """
+        """partial derivative terms in vector representation"""
 
         # partial derivative for cost function of either linear or logistic
         # regression, only difference is the hypothesis which depends on model.
@@ -98,9 +98,8 @@ class GradientDescent(object):
             # h produces column vector of real numbers between (0, 1) of shape
             # [num_samples, 1]
             # logistic (sigmoid) cost function, y is gronud truth of 0 or 1
-            J = (-np.dot(np.log(self._h).T, self.y) -
-                 np.dot(np.log(1 - self).T, (1 - self.y))
-                 ).mean()
+            J = (-np.dot(self.y.T, np.log(self._h))-np.dot((1 - self.y).T,
+                 np.log(1 - self._h))).mean()
 
         return np.sum(J)
 
@@ -117,18 +116,21 @@ class GradientDescent(object):
         if self._display:
             print('beginning gradient decent algorithm...')
 
-        while (np.abs(prev_cost - cost) > self._conv_thres) and \
-              (count <= self._max_epochs):
+        while np.abs(prev_cost - cost) > self._conv_thres and \
+                count <= self._max_epochs and \
+                cost >= 0:
+
             prev_cost = cost
 
-            self.params -= self._alpha * self.__partial_derivative__()
+            self._params -= self._alpha * self.__partial_derivative__()
 
             # cost at each iteration
             cost = self.__cost_function__()
             costs.append(cost)
             count += 1
             if self._display:
-                print('iterations have been processed: {0}'.format(count))
+                print(cost)
+                print('number of iterations processed: {0}'.format(count))
 
         return costs
 
@@ -136,10 +138,9 @@ class GradientDescent(object):
 
         if not self._multi_class:
 
-            costs = self.__processing__()
-
+            self.costs = self.__processing__()
             self.thetas = self.params
-            self.costs = costs
+            return self.thetas, self.costs
 
         else:
 
@@ -161,3 +162,5 @@ class GradientDescent(object):
 
             self.thetas = master_params[1:]
             self.costs = master_costs[0]
+
+        return self.thetas, self.costs
