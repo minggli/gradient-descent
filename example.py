@@ -77,20 +77,20 @@ lr = linear_model.LogisticRegression(fit_intercept=False,
 constantfeature = np.hstack((np.ones([feature.shape[0], 1]), feature))
 # Gradient Descent to fit model
 lr.fit(constantfeature, label)
-old = lr.coef_
 # initiate weights
 lr.coef_ = initiate_weights(lr)
 print(lr.coef_)
 
-optimiser = GradientDescent(alpha=1e-4, max_epochs=1e5, conv_thres=1e-4,
+optimiser = GradientDescent(alpha=1e-1, max_epochs=1e5, conv_thres=1e-6,
                             display=False)
-new_parameters, _ = optimiser.fit(lr, constantfeature, label).optimise()
+optimiser.fit(lr, constantfeature, label).optimise()
+new_parameters = optimiser.thetas
 lr.coef_ = new_parameters
 print(lr.coef_)
 y_pred = lr.predict(constantfeature)
 f1_macro = metrics.f1_score(label, y_pred, average='macro')
 accuracy = metrics.accuracy_score(label, y_pred)
-print('Logistic Regression GD performance:\n'
+print('Logistic Regression performance using Gradient Descent:\n'
       'F1 (macro): {:.4f}\nAccuracy: {:.4f}'.format(
         f1_macro.mean(), accuracy.mean()))
 
