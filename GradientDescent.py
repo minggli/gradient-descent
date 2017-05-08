@@ -73,7 +73,7 @@ class GradientDescent:
 
     def _partial_derivative(self, params, y):
         """partial derivative terms for either linear or logistic regression
-        albeit comestically the same, hypothesis would be different for each.
+        albeit cosmetically the same, hypothesis is different for each.
 
         d is n-dimensioned vector.
         """
@@ -83,24 +83,32 @@ class GradientDescent:
 
     def _cost_function(self, params, y):
         """cost function or objective function to minimise"""
-        self._update_hypothesis(params)
+        # self._update_hypothesis(params)
 
         if self._linear:
-            # GLM hypothesis in linear algebra representation: mean squared
+            # GLM cost function in linear algebra representation: mean squared
             # error over 2
-            J = np.square(self.h - y) / self.m
+            # J = np.square(self.h - y) / self.m
+            J = np.square(np.dot(self.X, params.T) - y) / self.m
             J /= 2
 
         if self._sigmoid:
-            # logistic (sigmoid) hypothesis in linear algebra representation
-            J = - np.dot(y.T, np.log(self.h)) \
-                - np.dot((1 - y).T, np.log(1 - self.h))
-            J /= self.m
-        return float(J)
+            # original logistic (sigmoid) cost function:
+            # J(θ) = -sum(- y * log(hθ(x)) + (1 - y) * log(1 - hθ(x)))) / m
+            # After plugging in sigmoid hypothesis and mathematical reasoning,
+            # the equivalent is now simplified to:
+            #          J(θ) = -sum(yθx - log(1 + exp(θx))) / m
+
+            # original implementation:
+            # J = - (y * np.log(self.h) + (1 - y) * np.log(1 - self.h)).mean()
+            J = - (y * np.dot(self.X, params.T) -
+                   np.log(1 + np.exp(np.dot(self.X, params.T)))).mean()
+
+        return J
 
     def _process(self, params, y):
-        """core operation to iteratively calculate partial
-        deratives and update parameters and evaluate cost function"""
+        """core operation to iteratively calculate partial derivative and
+        update parameters and evaluate cost function"""
         # initial J of theta
         cost = self._cost_function(params, y)
         prev_cost = cost + 10
@@ -117,7 +125,7 @@ class GradientDescent:
 
             if self._display:
                 print('number iterations processed: {0:<10} '
-                      'cost: {1:<10}'.format(self.count, cost))
+                      'cost: {1:.6f}'.format(self.count, cost))
             self.count += 1
 
         return params, costs
