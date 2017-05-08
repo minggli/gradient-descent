@@ -94,7 +94,7 @@ class GradientDescent:
 
         if self._sigmoid:
             # original logistic (sigmoid) cost function:
-            # J(θ) = -sum(- y * log(hθ(x)) + (1 - y) * log(1 - hθ(x)))) / m
+            # J(θ) = -sum(y * log(hθ(x)) + (1 - y) * log(1 - hθ(x)))) / m
             # After plugging in sigmoid hypothesis and mathematical reasoning,
             # the equivalent is now simplified to:
             #          J(θ) = -sum(yθx - log(1 + exp(θx))) / m
