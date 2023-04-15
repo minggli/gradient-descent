@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "gradient-descent"
+version = "0.1.0"
+description = "gradient descent with linear regression and logistic regression"
+authors = ["Ming Li <ming.george.li@gmail.com>"]
+license = "MIT License"
+readme = "README.md"
+packages = [{include = "gradient_descent"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^1.24.2"
+torch = "^2.0.0"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.2.0"
+pylint = "^2.17.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
