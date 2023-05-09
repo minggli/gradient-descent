@@ -35,6 +35,7 @@ include = '(atlassian|examples|tests)\/.*(\.py|GET|POST)'
 max-line-length = 120
 
 [tool.pylint.MASTER]
+source-roots='.'
 
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may

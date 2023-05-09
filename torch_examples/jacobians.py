@@ -7,9 +7,9 @@ from torch.autograd.functional import jacobian
 from torch_examples.model import TwoLayerNN
 
 
-def differentiable_function(weight_1, bias_1, weight_2, bias_2, model=None):
-    pred = model.func(X, weight_1, bias_1, weight_2, bias_2)
-    return F.mse_loss(pred, y, reduction="mean")
+def differentiable_function(weight_1, bias_1, weight_2, bias_2, model=None, data=None, target=None):
+    pred = model.func(data, weight_1, bias_1, weight_2, bias_2)
+    return F.mse_loss(pred, target, reduction="mean")
 
 
 X = torch.Tensor(
@@ -22,13 +22,11 @@ X = torch.Tensor(
 y = torch.Tensor(
     [100, 200, 370]
 ).unsqueeze(-1)
-
-
 network = TwoLayerNN(2)
 mse = nn.MSELoss()
 
 # obtain jacobians using autograd.functional
-differentiable_function = partial(differentiable_function, model=network)
+differentiable_function = partial(differentiable_function, model=network, data=X, target=y)
 jacobians_functional = jacobian(differentiable_function, tuple(network.parameters()))
 
 loss = mse(network(X), y)
