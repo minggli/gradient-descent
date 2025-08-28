@@ -18,9 +18,12 @@ mypy = "^1.2.0"
 pylint = "^2.17.2"
 black = "^23.3.0"
 
+
+[tool.pdm.build]
+includes = ["gradient_descent"]
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [tool.mypy]
 ignore_missing_imports = true
@@ -106,3 +109,24 @@ disable='''
         arguments-differ,
         too-many-arguments,
 '''
+[project]
+authors = [
+    {name = "Ming Li", email = "ming.george.li@gmail.com"},
+]
+license = {text = "MIT License"}
+requires-python = "<4.0,>=3.11"
+dependencies = [
+    "numpy<2.0.0,>=1.24.2",
+    "torch<3.0.0,>=2.0.0",
+]
+name = "gradient-descent"
+version = "0.1.0"
+description = "gradient descent with linear regression and logistic regression"
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "mypy<2.0.0,>=1.2.0",
+    "pylint<3.0.0,>=2.17.2",
+    "black<24.0.0,>=23.3.0",
+]
